@@ -1,0 +1,230 @@
+Packaging RPM workflow
+======================
+:Author:	Shakthi Kannan
+:Email:		<shakthimaan\_no\_spam\_at\_gmail\_dot\_com>
+:Date:		September 25, 2010
+:Revision:	1.8
+
+/////////////////////////////////////////////////////////////////////
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.2
+or any later version published by the Free Software Foundation;
+A copy of the license is included in the section entitled "GNU
+Free Documentation License".
+/////////////////////////////////////////////////////////////////////
+
+Workflow
+--------
+
+Please read the full documentation before you try it!
+
+Create accounts
+~~~~~~~~~~~~~~~
+
+* Create a https://admin.fedoraproject.org/accounts/[Fedora Accounts System (FAS)] account.
+
+* Create a https://bugzilla.redhat.com/[Red Hat Bugzilla] account.
+
+Both should use the same e-mail address!
+
+Mailing lists
+~~~~~~~~~~~~~
+
+Join the following mailing lists:
+
+* https://www.redhat.com/mailman/listinfo/fedora-devel-announce[fedora-devel-announce]
+
+* https://www.redhat.com/mailman/listinfo/fedora-devel-list[fedora-devel-list]
+
+* https://www.redhat.com/mailman/listinfo/fedora-extras-commits[fedora-extras-commits] (read-only)
+
+* http://www.redhat.com/mailman/listinfo/fedora-packaging[fedora-packaging]
+
+FAS requirements
+~~~~~~~~~~~~~~~~
+
+In FAS, accept the Contributors License Agreement. Wait for approval. 
+
+* You should upload your SSH key, usually, ~/.ssh/id_rsa.pub. If you
+  don't have it in your system, please create one using 'ssh-keygen'.
+
+* You will need to download a client-side certificate from your
+  FAS account. It will be called dogencert. Copy it to ~/.fedora.cert.
+
+* You will need to download the fedora-upload-ca.cert from
+  https://admin.fedoraproject.org/accounts/fedora-upload-ca.cert to
+  ~/.fedora-upload-ca.cert.
+
+* You will need to download the fedora-server-ca.cert from
+  https://admin.fedoraproject.org/accounts/fedora-server-ca.cert to
+  ~/.fedora-server-ca.cert.
+
+Then, join the following groups:
+
+* Fedora Bugs Group
+* Fedora Packager Group
+
+When your package is sponsored you will be moved to the Fedora Packager SCM
+Commit Group.
+
+Create your package
+~~~~~~~~~~~~~~~~~~~
+
+You can use the following references:
+
+* Packaging Red hot, Paneer (butter) Masala: http://shakthimaan.com/downloads/glv/presentations/packaging-red-hot-paneer-butter-masala.pdf[Packaging RPM]
+
+* http://fedoraproject.org/wiki/How_to_create_an_RPM_package[How_to_create_an_RPM_package]
+
+* http://fedoraproject.org/wiki/Docs/Drafts/BuildingPackagesGuide[BuildingPackagesGuide]
+
+You can use Koji to build packages for Fedora Collection and EPEL, by using:
+
+----
+koji build --scratch TARGET /path/to/local.built.src.rpm
+----
+
+where:
+
+* 'TARGET' is dist-f14 (for Fedora 14). Use 'koji list-targets' to see available targets.
+
+Upload your package
+~~~~~~~~~~~~~~~~~~~
+
+You can put the .spec and .src.rpm in your FAS account (150 MB
+available). For example:
+
+* http://shakthimaan.fedorapeople.org/SPECS/[http://shakthimaan.fedorapeople.org/SPECS/]
+* http://shakthimaan.fedorapeople.org/SRPMS/[http://shakthimaan.fedorapeople.org/SRPMS/]
+
+Make a review request
+~~~~~~~~~~~~~~~~~~~~~
+
+Create a review request from using the following URL:
+
+https://bugzilla.redhat.com/enter_bug.cgi?product=Fedora&format=fedora-review[https://bugzilla.redhat.com/enter_bug.cgi?product=Fedora&format=fedora-review]
+
+* In 'Review Summary' put the name of the package.
+* In Provide URLs for .spec file and .src.rpm.
+* In 'description' add the .spec file description.
+* In the 'Review Description' mention it is your first package.
+* Add 'FE-NEEDSPONSOR' in the 'Bug' 'blocks' field. This is only required 
+if it is your first package.
+
+Review
+~~~~~~
+
+If there are any changes requested, please review them at your submitted Review Request at bugzilla.redhat.com.
+
+Make SCM request
+~~~~~~~~~~~~~~~~
+
+Once the .spec and .src.rpm is sponsored/approved, you need to make a new
+package SCM request:
+
+Add the following note in your bugzilla.redhat.com Review Request page
+(mcu8051ide is an example here):
+
+----
+New Package SCM Request
+=======================
+Package Name: mcu8051ide
+Short Description: IDE for MCS-51 based microcontrollers
+Owners: shakthimaan chitlesh
+Branches: F-13 F-14 EL-5
+InitialCC: shakthimaan
+
+----
+
+Changing the fedora-cvs flag to "?" in the Bugzilla page. It means SCM
+admin attention is needed.
+
+Upload package to SCM
+~~~~~~~~~~~~~~~~~~~~~
+
+Once SCM access has been granted, checkout the package:
+
+----
+$ cd ~
+$ mkdir fedora-git
+$ cd fedora-git
+$ fedpkg clone mcu8051ide
+----
+
+The default branch is the master branch. You can now import the .src.rpm to 
+the master branch:
+
+----
+$ cd mcu8051ide
+$ fedpkg import /home/foo/rpmbuild/SRPMS/mcu8051ide-1.1-4.fc14.src.rpm
+----
+
+You can then commit and push the package using:
+
+----
+$ fedpkg commit -p
+----
+
+It will open up vi for you to give the commit message.
+
+You should also import it to the respective branches you have
+mentioned earlier -- F-13, F-14, and EL-5, as follows:
+
+----
+$ fedpkg switch-branch f14
+$ fedpkg import /home/foo/rpmbuild/SRPMS/mcu8051ide-1.1-4.fc14.src.rpm
+$ fedpkg commit -p
+
+$ fedpkg switch-branch f13
+$ fedpkg import /home/foo/rpmbuild/SRPMS/mcu8051ide-1.1-4.fc14.src.rpm
+$ fedpkg commit -p
+
+$ fedpkg switch-branch el5
+$ fedpkg import /home/foo/rpmbuild/SRPMS/mcu8051ide-1.1-4.fc14.src.rpm
+$ fedpkg commit -p
+----
+
+If you have already pushed a package to the git repository, and you have made 
+an updated package locally, just repeat the above for the newly created RPM package.
+
+These commits will also generate automated e-mails to:
+https://www.redhat.com/mailman/listinfo/fedora-extras-commits[https://www.redhat.com/mailman/listinfo/fedora-extras-commits]
+
+Request builds
+~~~~~~~~~~~~~~
+
+For each branch in the ~/fedora-git/<package-name> directory (except for the master branch),
+request for builds.
+
+----
+$ fedpkg build &
+----
+
+From Fedora 11, one needs to use rpmbuild-md5 to build EPEL packages,
+because, Fedora RPM packages use SHA256, while EL5 uses MD5.
+
+Push package to public repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Login to Fedora Update System:
+https://admin.fedoraproject.org/updates/new/[https://admin.fedoraproject.org/updates/new/]
+
+* 'Package': Type the first name of the package, and your package builds will be displayed. Add for all the package builds.
+
+* 'Type': For a new package, it is 'newpackage'.
+
+* 'Request': Can be Stable.
+
+* 'Bugs': Write the relevant 'bugzilla' bug request number here.
+
+* 'Notes': Any notes that you want to be mentioned.
+
+Click on 'Save Update' to send the package update.
+
+'References'
+
+* http://fedoraproject.org/wiki/PackageMaintainers/Join[http://fedoraproject.org/wiki/PackageMaintainers/Join]
+
+* http://fedoraproject.org/wiki/PackageMaintainers/UsingKoji[Using Koji]
+
+* http://fedoraproject.org/wiki/Using_Fedora_GIT[Using Fedora GIT]
