@@ -1,17 +1,25 @@
-%global upstream_name keyring
-%global tarball_version 0.3
+%if 0%{?fedora} > 12
+%global with_python3 1
+%endif
+
+%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 Name:           python-keyring
-Version:        3.0.5
+Version:        3.1
 Release:        1%{?dist}
 Summary:        Python library to access the system keyring service
 
-Source0:        http://pypi.python.org/packages/source/k/keyring/%{upstream_name}-%{tarball_version}.tar.gz
+Source0:        http://pypi.python.org/packages/source/k/keyring/keyring-%{version}.zip
+Patch0:         keyring-3.1-fix-cli.patch
 License:        Python
 Group:          Development/Libraries
 URL:            http://pypi.python.org/pypi/keyring
 BuildArch:      noarch
 BuildRequires:  python-devel
+%if 0%{?with_python3}
+BuildRequires:  python3-devel
+BuildRequires:  python3-setuptools
+%endif
 Obsoletes:      %{name}-kwallet < %{version}
 Obsoletes:      %{name}-gnome < %{version}
 Obsoletes:      %{name} < %{version}
@@ -21,27 +29,47 @@ The Python keyring lib provides a easy way to access the system keyring
 service from python. It can be used in any application that needs safe
 password storage.
 
-The keyring services supported by the Python keyring lib:
-* OSXKeychain: supports the Keychain service in Mac OS X.
-* KDEKWallet: supports the KDE's Kwallet service.
-* GnomeKeyring: for Gnome 2 environment.
-* SecretServiceKeyring: for newer GNOME and KDE environments.
-* WinVaultKeyring: supports the Windows Credential Vault
+%if 0%{?with_python3}
+%package -n python3-keyring
+Summary:        Python library to access the system keyring service for Python 3
+Group:          Development/Libraries
 
-Besides these native password storing services provided by operating
-systems. Python keyring lib also provides following build-in keyrings.
-* Win32CryptoKeyring: for Windows 2k+.
-* CryptedFileKeyring: a command line interface keyring base on PyCrypto.
-* UncryptedFileKeyring: a keyring which leaves passwords directly in file.
+%description -n python3-keyring
+The Python keyring lib provides a easy way to access the system keyring
+service from python. It can be used in any application that needs safe
+password storage.
+%endif
 
 %prep
-%setup -q -n %{upstream_name}-%{tarball_version}
+%setup -q -n keyring-%{version}
+%patch0 -p1
+
+%if 0%{?with_python3}
+rm -rf %{py3dir}
+cp -a . %{py3dir}
+%endif
+
 
 %build
 CFLAGS="$RPM_OPT_FLAGS" %{__python} setup.py build
+
+%if 0%{?with_python3}
+pushd %{py3dir}
+CFLAGS="${RPM_OPT_FLAGS}" %{__python3} setup.py build
+popd
+%endif
+
+
 %install
-%{__rm} -rf $RPM_BUILD_ROOT
-%{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
+%if 0%{?with_python3}
+pushd %{py3dir}
+%{__python3} setup.py install --skip-build --root $RPM_BUILD_ROOT
+cp %{buildroot}/%{_bindir}/keyring %{buildroot}/%{_bindir}/python3-keyring
+popd
+%endif
+
+%{__python} setup.py install --skip-build --root $RPM_BUILD_ROOT
+
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -49,13 +77,23 @@ CFLAGS="$RPM_OPT_FLAGS" %{__python} setup.py build
 
 %files
 %defattr(-,root,root,-)
-%doc README.txt CHANGES.txt demo
-%{python_sitelib}/%{upstream_name}
-%{python_sitelib}/%{upstream_name}-*.egg-info
+%doc README.rst CHANGES.rst CONTRIBUTORS.txt demo
+%{_bindir}/keyring
+%{python_sitelib}/keyring
+%{python_sitelib}/keyring-*.egg-info
+
+%if 0%{?with_python3}
+%files -n python3-keyring
+%defattr(-,root,root,-)
+%{_bindir}/python3-keyring
+%doc README.rst CHANGES.rst CONTRIBUTORS.txt demo
+%{python3_sitelib}/*
+%endif
+
 
 %changelog
-* Tue Oct 22 2013 rtnpro <rtnpro@gmail.com>
-- Bump to version 3.0.5
+* Tue Oct 22 2013 rtnpro <rtnpro@gmail.com> - 3.1-1
+- Bump to version 3.1
 
 * Thu Feb 14 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.7-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
